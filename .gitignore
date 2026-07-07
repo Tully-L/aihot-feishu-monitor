@@ -1,0 +1,7 @@
+.env
+*.log
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+state.json
+state.json.tmp
