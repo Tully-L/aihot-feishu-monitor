@@ -28,6 +28,8 @@ DEFAULT_FEISHU_WEBHOOK_FILE = "~/.claude/.feishu-webhook"
 BRAND_NAME = "AI HOT（数字卡兹克）"
 STATE_SEEN_LIMIT = 2000
 CARD_MARKDOWN_LIMIT = 24000
+CARD_HEADER_LIMIT = 90
+CARD_HEADER_ITEM_LIMIT = 34
 CATEGORY_LABELS = {
     "ai-models": "模型",
     "ai-products": "产品",
@@ -318,8 +320,37 @@ def item_line(item: dict[str, Any]) -> str:
 def fit_markdown(content: str, limit: int = CARD_MARKDOWN_LIMIT) -> str:
     if len(content) <= limit:
         return content
-    suffix = "\n\n内容过长，卡片已保留前段；可点下方按钮打开详情。"
+    suffix = "\n\n内容过长，卡片已保留前段；可点下方按钮进入网站。"
     return content[: max(0, limit - len(suffix) - 1)].rstrip() + "…" + suffix
+
+
+def total_item_count(items: list[dict[str, Any]], truncated_count: int = 0) -> int:
+    return len(items) + max(0, truncated_count)
+
+
+def item_title(item: dict[str, Any], limit: int) -> str:
+    return trim_text(item.get("title") or "AI HOT 更新", limit)
+
+
+def card_header_title(items: list[dict[str, Any]], truncated_count: int = 0) -> str:
+    total = total_item_count(items, truncated_count)
+    if not items:
+        return f"{BRAND_NAME}更新提醒"
+    if total == 1:
+        return trim_text(item_title(items[0], CARD_HEADER_LIMIT), CARD_HEADER_LIMIT)
+
+    title_parts = [item_title(item, CARD_HEADER_ITEM_LIMIT) for item in items[:3]]
+    title = " + ".join(title_parts)
+    if total > len(title_parts):
+        title = f"{title} 等 {total} 条"
+    return trim_text(title, CARD_HEADER_LIMIT)
+
+
+def card_status_line(items: list[dict[str, Any]], truncated_count: int = 0) -> str:
+    total = total_item_count(items, truncated_count)
+    if total <= 0:
+        return f"**{BRAND_NAME}更新提醒**"
+    return f"**{BRAND_NAME}新增 {total} 条**"
 
 
 def feed_url(mode: str) -> str:
@@ -351,16 +382,12 @@ def action_buttons(items: list[dict[str, Any]], mode: str) -> list[dict[str, Any
 
 
 def build_card(items: list[dict[str, Any]], *, mode: str, truncated_count: int = 0) -> dict[str, Any]:
-    title = f"{BRAND_NAME}更新提醒"
-    if len(items) == 1:
-        title = f"{BRAND_NAME}新增 1 条"
-    elif items:
-        title = f"{BRAND_NAME}新增 {len(items)} 条"
-    lines = [item_line(item) for item in items]
+    title = card_header_title(items, truncated_count)
+    lines = [card_status_line(items, truncated_count), *[item_line(item) for item in items]]
     if truncated_count > 0:
-        lines.append(f"本次还有 {truncated_count} 条新内容未展开，请打开 {BRAND_NAME} 查看。")
-    if not lines:
-        lines = ["监控已连接，当前没有新增条目。"]
+        lines.append(f"本次还有 {truncated_count} 条新内容未展开，可点下方按钮进入网站查看。")
+    if not items:
+        lines.append("监控已连接，当前没有新增条目。")
     content = fit_markdown("\n\n---\n\n".join(lines))
 
     return {

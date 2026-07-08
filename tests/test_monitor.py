@@ -139,7 +139,8 @@ class MonitorTests(unittest.TestCase):
 
         self.assertEqual(count, 1)
         rendered = json.dumps(calls[0], ensure_ascii=False)
-        self.assertIn("AI HOT（数字卡兹克）新增 1 条", rendered)
+        self.assertIn("AI HOT（数字卡兹克）新增 2 条", rendered)
+        self.assertEqual(calls[0]["card"]["header"]["title"]["content"], "two 等 2 条")
         self.assertIn("还有 1 条新内容", rendered)
         self.assertIn("two", rendered)
         self.assertNotIn("[two](https://x/2)", rendered)
@@ -165,12 +166,32 @@ class MonitorTests(unittest.TestCase):
             mode="selected",
         )
         rendered = json.dumps(payload, ensure_ascii=False)
+        self.assertEqual(payload["card"]["header"]["title"]["content"], "标题")
         self.assertIn(long_summary, rendered)
         self.assertIn("**标题**", rendered)
         self.assertNotIn("[标题](https://aihot.virxact.com/items/1)", rendered)
         self.assertIn("进入网站", rendered)
         self.assertNotIn("打开详情", rendered)
         self.assertIn("打开原文", rendered)
+
+    def test_card_header_summarizes_multiple_items(self):
+        payload = monitor.build_card(
+            [
+                {"id": "1", "title": "蚂蚁集团开源 LingBot-Vision", "summary": "a"},
+                {"id": "2", "title": "OpenAI 发布新模型工具", "summary": "b"},
+                {"id": "3", "title": "Claude Code 更新工作流", "summary": "c"},
+            ],
+            mode="selected",
+            truncated_count=1,
+        )
+        header = payload["card"]["header"]["title"]["content"]
+        self.assertIn("蚂蚁集团开源 LingBot-Vision", header)
+        self.assertIn("OpenAI 发布新模型工具", header)
+        self.assertIn("Claude Code 更新工作流", header)
+        self.assertIn("等 4 条", header)
+        self.assertNotIn("AI HOT（数字卡兹克）新增", header)
+        rendered = json.dumps(payload, ensure_ascii=False)
+        self.assertIn("AI HOT（数字卡兹克）新增 4 条", rendered)
 
 
 if __name__ == "__main__":
