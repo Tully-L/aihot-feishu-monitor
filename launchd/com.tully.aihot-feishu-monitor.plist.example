@@ -16,6 +16,20 @@
     <string>--loop</string>
   </array>
 
+  <!-- 强制直连：监控只访问公网数据源与飞书 webhook，不需要任何代理。
+       显式清空代理变量可避免进程启动时继承一个本地代理(如 Clash 127.0.0.1:7897)，
+       否则代理一关就会每轮 Connection refused 却因 KeepAlive 不重启而静默失败。 -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HTTP_PROXY</key><string></string>
+    <key>HTTPS_PROXY</key><string></string>
+    <key>ALL_PROXY</key><string></string>
+    <key>http_proxy</key><string></string>
+    <key>https_proxy</key><string></string>
+    <key>all_proxy</key><string></string>
+    <key>no_proxy</key><string>*</string>
+  </dict>
+
   <key>RunAtLoad</key>
   <true/>
 
